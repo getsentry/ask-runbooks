@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ask-runbooks</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: monospace; margin: 0; padding: 0; display: flex; height: 100vh; }
+    #main { flex: 1; display: flex; flex-direction: column; padding: 24px 24px 16px; min-width: 0; }
+    #log { flex: 1; overflow-y: auto; margin-bottom: 16px; }
+    .q { margin: 16px 0 4px; font-weight: bold; cursor: pointer; user-select: none; }
+    .q::before { content: "> "; }
+    .q.collapsed + .a { display: none; }
+    .q.collapsed + .a + .timing { display: none; }
+    .a { white-space: pre-wrap; padding-left: 16px; }
+    .timing { font-size: 0.75em; color: #aaa; margin-top: 4px; }
+    .loading { color: #ccc; font-size: 0.9em; padding-left: 16px; margin-top: 4px; animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    form { display: flex; gap: 8px; }
+    input { flex: 1; font-family: monospace; font-size: 1em; padding: 4px; border: 1px solid #ccc; }
+    input:focus { outline: none; border-color: #888; }
+    #main:not(.active) form input { padding: 8px; border-color: #e05c2a; border-width: 2px; box-shadow: 0 0 0 3px rgba(224, 92, 42, 0.15); }
+    form input { transition: padding 0.3s, border-color 0.3s, border-width 0.3s, box-shadow 0.3s; }
+    #hint { color: #aaa; margin-bottom: 12px; }
+    #main.active #hint { display: none; }
+    button { font-family: monospace; }
+    #sidebar { width: 200px; border-left: 1px solid #e0e0e0; padding: 16px 12px; overflow-y: auto; flex-shrink: 0; }
+    .sidebar-section { margin-bottom: 16px; }
+    .sidebar-section h2 { font-size: 0.75em; color: #aaa; margin: 0 0 8px; font-weight: normal; text-transform: uppercase; letter-spacing: 0.05em; }
+    .source-list { list-style: none; margin: 0; padding: 0; }
+    .source-list li { margin-bottom: 8px; font-size: 0.78em; line-height: 1.3; }
+    .source-list a { color: #555; text-decoration: none; }
+    .source-list a:hover { color: #000; text-decoration: underline; }
+    .source-list span { color: #777; }
+  </style>
+</head>
+<body>
+  <div id="main">
+    <div id="hint">on call at 3am? start here.</div>
+    <div id="log"></div>
+    <form id="form">
+      <input id="q" autocomplete="off" placeholder="ask a question..." autofocus>
+      <button type="submit">ask</button>
+    </form>
+  </div>
+  <div id="sidebar">
+    <div class="sidebar-section">
+      <h2>Runbooks</h2>
+      <ul class="source-list" id="runbook-list"></ul>
+    </div>
+    <div class="sidebar-section">
+      <h2>Incidents</h2>
+      <ul class="source-list" id="incident-list"></ul>
+    </div>
+  </div>
+  <script>
+    const main = document.getElementById('main');
+    const log = document.getElementById('log');
+    const form = document.getElementById('form');
+    const input = document.getElementById('q');
+    const runbookList = document.getElementById('runbook-list');
+    const incidentList = document.getElementById('incident-list');
+    const seenSources = new Set();
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const question = input.value.trim();
+      if (!question) return;
+      main.classList.add('active');
+      input.value = '';
+      input.disabled = true;
+
+      const qEl = document.createElement('div');
+      qEl.className = 'q';
+      qEl.textContent = question;
+      qEl.addEventListener('click', () => qEl.classList.toggle('collapsed'));
+      log.appendChild(qEl);
+
+      const loadingEl = document.createElement('div');
+      loadingEl.className = 'loading';
+      loadingEl.textContent = '...';
+      log.appendChild(loadingEl);
+
+      const res = await fetch('/ask', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ question }),
+      });
+      const data = await res.json();
+
+      loadingEl.remove();
+
+      const aEl = document.createElement('div');
+      aEl.className = 'a';
+      aEl.innerHTML = marked.parse(data.answer);
+      log.appendChild(aEl);
+
+      data.sources.forEach(s => {
+        const key = s.url || s.title;
+        if (seenSources.has(key)) return;
+        seenSources.add(key);
+        const li = document.createElement('li');
+        if (s.url && s.url.startsWith('http')) {
+          li.innerHTML = `<a href="${s.url}" target="_blank">${s.title}</a>`;
+        } else {
+          li.innerHTML = `<span>${s.title}</span>`;
+        }
+        const list = s.doc_type === 'runbook' ? runbookList : incidentList;
+        list.appendChild(li);
+      });
+
+      const timing = document.createElement('div');
+      timing.className = 'timing';
+      timing.textContent = `answered in ${(data.llm_ms / 1000).toFixed(1)}s`;
+      log.appendChild(timing);
+
+      input.disabled = false;
+      input.focus();
+    });
+  </script>
+</body>
+</html>

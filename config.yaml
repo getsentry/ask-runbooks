@@ -1,0 +1,40 @@
+context: |
+  Key internal Sentry terms:
+  - EAP: Events Analytics Platform
+  - SnS: Search and Storage
+  - Snuba: Sentry's internal data querying and aggregation layer
+  - Relay: Sentry's event ingestion proxy service
+  - Vroom: Sentry's profiling data processor
+  - Craft: Sentry's release and deployment tooling
+  - POP: Point of Presence (a Relay edge location)
+  - ST: Single-tenant deployment
+  # Regional deployments: US, DE (Germany/Europe), LY, SG (Singapore)
+
+llm:
+  provider: claude
+  model: claude-sonnet-4-6
+  # To use Ollama instead:
+  # provider: ollama
+  # model: mistral-small3.1
+  # ollama_url: http://localhost:11434
+
+sources:
+  notion_zip:
+    - path: ./.data/incidents
+      doc_type: incident
+    - path: ./.data/runbooks
+      doc_type: runbook
+
+  github:
+    - repo: getsentry/synapse
+      paths:
+        - ""
+      doc_type: architecture
+
+  notion: []
+    # - page_id: abc123        # root page, walks all nested child pages
+    #   doc_type: incident
+    # - page_id: def456
+    #   doc_type: architecture
+    # - database_id: ghi789    # Notion database, fetches all rows
+    #   doc_type: runbook
