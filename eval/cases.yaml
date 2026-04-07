@@ -12,6 +12,16 @@
     - Pausing the Workers
     - Identify Workers/Queue for a given task
 
+- query: postgres queries slow and timing out
+  expected_incidents:
+    - INC-1261
+    - INC-1413
+  expected_runbooks:
+    - Long Running Postgres Queries
+    - Long running transactions and subtrans locks
+    - PGBouncer
+    - Postgres Routine Reindexing
+
 - query: save_event backlogged due to one project
   expected_incidents:
     - INC-60
@@ -19,13 +29,6 @@
     - Dropping events per project/event-type/organization (killswitches)
     - Identify Workers/Queue for a given task
     - Increasing Org Rate/Abuse Limits
-
-- query: postgres queries slow and timing out
-  expected_incidents:
-    - TODO
-  expected_runbooks:
-    - TODO
-
 
 # - query: super-big-data dataflow and airflow sync stuck
 #   expected_incidents:

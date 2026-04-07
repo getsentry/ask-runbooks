@@ -65,6 +65,8 @@ class NotionZipSource(Source):
                 continue
             if max_depth is not None and len(Path(name).parts) > max_depth:
                 continue
+            if doc_type == "runbook" and any(part.startswith("[INC-") for part in Path(name).parts):
+                continue
             content = zf.read(name).decode("utf-8")
             fallback_title, url = _parse_filename(name)
             title = extract_title(content, fallback=fallback_title)

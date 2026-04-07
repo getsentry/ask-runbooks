@@ -49,7 +49,7 @@ Each question submitted goes through a multi-step pipeline:
 4. **Re-rank candidates with a cross-encoder**
    - Scores each (query, chunk) pair together using `cross-encoder/ms-marco-MiniLM-L-6-v2` (small question answering model)
    - Results below `RERANKER_THRESHOLD = -2.0` are dropped
-   - Incidents are boosted by recency — newer INC numbers score up to 20% higher, so recent incidents surface over older ones with similar relevance
+   - Incidents are boosted by recency, recent incidents surface over older ones with similar relevance
 5. **Generate an answer**
    - Top results passed to the LLM with conversation history
    - Answer and sources returned to the user

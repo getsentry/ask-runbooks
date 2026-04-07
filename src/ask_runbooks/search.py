@@ -21,6 +21,7 @@ Reciprocal Rank Fusion (RRF):
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -178,3 +179,24 @@ def search(
 
     _apply_recency_boost(results)
     return results
+
+
+def _apply_recency_boost(results: list[SearchResult], weight: float = 0.2) -> None:
+    """Boost incident scores by recency based on INC number. Modifies results in place."""
+    incidents = [r for r in results if r.doc_type == "incident" and "inc_number" in r.metadata]
+    if len(incidents) < 2:
+        return
+
+    def inc_num(r: SearchResult) -> int:
+        m = re.search(r"\d+", r.metadata["inc_number"])
+        return int(m.group()) if m else 0
+
+    nums = [inc_num(r) for r in incidents]
+    lo, hi = min(nums), max(nums)
+    if lo == hi:
+        return
+
+    for r in incidents:
+        recency = (inc_num(r) - lo) / (hi - lo)  # 0 (oldest) to 1 (newest)
+        r.score *= 1 + weight * recency
+    results.sort(key=lambda r: r.score, reverse=True)
