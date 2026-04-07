@@ -68,8 +68,12 @@ def main() -> None:
         question = req["question"]
         history = session["history"]
 
-        incidents = dedup_by_doc(search(conn, question, doc_type="incident", llm=llm))
-        runbooks = dedup_by_doc(search(conn, question, doc_type="runbook", llm=llm))
+        # include recent user turns so follow-up questions search with full context
+        recent_user = [m["content"] for m in history[-4:] if m["role"] == "user"]
+        search_query = " ".join(recent_user + [question]) if recent_user else question
+
+        incidents = dedup_by_doc(search(conn, search_query, doc_type="incident", llm=llm))
+        runbooks = dedup_by_doc(search(conn, search_query, doc_type="runbook", llm=llm))
         t0 = time.time()
         answer = answer_in_session(question, incidents + runbooks, history, llm, context_note)
         llm_ms = int((time.time() - t0) * 1000)

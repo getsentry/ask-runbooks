@@ -29,7 +29,7 @@ from .db import dict_cursor
 from .embeddings import embed_one
 
 RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
-RERANKER_THRESHOLD = -2.0  # cross-encoder scores are roughly -10 to +10; below this = not relevant
+RERANKER_THRESHOLD = -5.0  # cross-encoder scores are roughly -10 to +10; below this = not relevant
 _reranker = None
 
 
