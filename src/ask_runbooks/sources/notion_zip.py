@@ -48,23 +48,22 @@ class NotionZipSource(Source):
     def name(self) -> str:
         return "notion_zip"
 
-    def _read_zip(self, zip_path: Path, doc_type: str) -> list[Document]:
+    def _read_zip(self, zip_path: Path, doc_type: str, max_depth: int | None = None) -> list[Document]:
         import io
         with zipfile.ZipFile(zip_path) as zf:
-            docs = self._read_zip_obj(zf, zip_path, doc_type)
+            docs = self._read_zip_obj(zf, zip_path, doc_type, max_depth)
             for name in zf.namelist():
                 if name.endswith(".zip"):
                     inner_zip = zipfile.ZipFile(io.BytesIO(zf.read(name)))
-                    docs.extend(self._read_zip_obj(inner_zip, zip_path / name, doc_type))
+                    docs.extend(self._read_zip_obj(inner_zip, zip_path / name, doc_type, max_depth))
         return docs
 
-    def _read_zip_obj(self, zf: zipfile.ZipFile, zip_path: Path, doc_type: str) -> list[Document]:
+    def _read_zip_obj(self, zf: zipfile.ZipFile, zip_path: Path, doc_type: str, max_depth: int | None = None) -> list[Document]:
         docs = []
         for name in sorted(zf.namelist()):
-            # skip sub-pages nested inside incident folders: top-level files have 3
-            # path parts (e.g. "Private & Shared/Incident Reports/INC-123.md"),
-            # sub-pages are nested deeper (4+ parts)
-            if not name.endswith(".md") or len(Path(name).parts) > 3:
+            if not name.endswith(".md"):
+                continue
+            if max_depth is not None and len(Path(name).parts) > max_depth:
                 continue
             content = zf.read(name).decode("utf-8")
             fallback_title, url = _parse_filename(name)
@@ -94,8 +93,9 @@ class NotionZipSource(Source):
                 print(f"  [notion_zip] Warning: path does not exist: {dir_path}")
                 continue
 
+            max_depth = entry.get("max_depth")
             for zip_path in sorted(dir_path.glob("*.zip")):
-                docs.extend(self._read_zip(zip_path, doc_type))
+                docs.extend(self._read_zip(zip_path, doc_type, max_depth))
 
         print(f"  [notion_zip] Found {len(docs)} documents")
         return docs

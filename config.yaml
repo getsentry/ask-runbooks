@@ -22,8 +22,9 @@ sources:
   notion_zip:
     - path: ./.data/incidents
       doc_type: incident
+      max_depth: 3  # skip sub-pages inside incident folders
     - path: ./.data/runbooks
-      doc_type: runbook
+      doc_type: runbook  # no max_depth — include all nested pages
 
   github:
     - repo: getsentry/synapse
